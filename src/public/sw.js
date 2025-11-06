@@ -1,0 +1,214 @@
+import { precacheAndRoute } from "workbox-precaching";
+import { registerRoute } from "workbox-routing";
+import { NetworkFirst, StaleWhileRevalidate } from "workbox-strategies";
+import { CacheableResponsePlugin } from "workbox-cacheable-response";
+import { ExpirationPlugin} from 'workbox-expiration';
+import { openDB } from 'idb';
+
+precacheAndRoute(self.__WB_MANIFEST);
+
+registerRoute(
+  ({ request }) =>
+    request.destination === 'style' ||
+    request.destination === 'script' ||
+    request.destination === 'image',
+  new StaleWhileRevalidate({
+    cacheName: 'static-resources',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 60,
+        maxAgeSeconds: 30 * 24 * 60 * 60,
+      }),
+    ],
+  })
+);
+
+registerRoute(
+  ({ url, request }) => 
+    url.origin.includes('story-api.dicoding.dev') &&
+    request.method === 'GET' &&
+    !url.href.includes('/notifications'),
+
+  new NetworkFirst({
+    cacheName: 'api-cache',
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({
+        maxEntries: 30,
+        maxAgeSeconds: 24 * 60 * 60,
+      }),
+    ],
+  })
+);
+
+registerRoute(
+  ({ url }) =>
+    url.origin.includes('story-api.dicoding.dev') &&
+    url.pathname.startsWith('/images/stories'),
+  new StaleWhileRevalidate({
+    cacheName: 'stories-data',
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({
+        maxEntries: 50,
+        maxAgeSeconds: 7 * 24 * 60 * 60,
+      }),
+    ],
+  })
+);
+
+registerRoute(
+  ({ url }) => url.origin.includes('tile.openstreetmap.org'),
+  new StaleWhileRevalidate({
+    cacheName: 'osm-tiles',
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({
+        maxEntries: 100,
+        maxAgeSeconds: 7 * 24 * 60 * 60,
+      }),
+    ],
+  })
+);
+
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+
+  if (request.destination === "image") {
+    event.respondWith(
+      (async () => {
+        try {
+          return await fetch(request);
+        } catch {
+          const cache = await caches.open("static-resources");
+          const fallback = await cache.match("/images/fallback.png");
+          return (
+            fallback ||
+            new Response("Image unavailable", {
+              status: 503,
+              headers: { "Content-Type": "text/plain" },
+            })
+          );
+        }
+      })()
+    );
+    return;
+  }
+
+  if (request.method !== "GET") {
+    event.respondWith(
+      (async () => {
+        try {
+          const response = await fetch(request);
+          return response;
+        } catch {
+          console.warn("[SW] Offline - queued for sync:", request.url);
+          return new Response(
+            JSON.stringify({ error: "Offline mode - request failed" }),
+            { status: 408, headers: { "Content-Type": "application/json" } }
+          );
+        }
+      })()
+    );
+  }
+});
+
+self.addEventListener('install', (event) => {
+  console.log('[SW] Installed');
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Activated');
+  event.waitUntil(clients.claim());
+});
+
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+  
+  try {
+    const data = event.data.json();
+    const title = data.title || 'Story App';
+    const body = data.options?.body || 'New story update!';
+    const targetUrl = data.options?.url || '/#/';
+
+    const options = {
+      body,
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-192.png',
+      data: { url: targetUrl },
+      actions: [{ action: 'open', title: 'View Story' }],
+    }
+
+    event.waitUntil(self.registration.showNotification(title, options));
+  } catch (error) {
+    console.error('[SW] Push event error:', error);
+  }
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || '/#/';
+  event.waitUntil(
+    clients
+    .matchAll({type: 'window', includeUncontrolled: true })
+    .then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.navigate(targetUrl);
+          client.focus();
+          return;
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+
+self.addEventListener('sync', async (event) => {
+  if (event.tag === 'sync-pending-stories') {
+    event.waitUntil(syncPendingStories());
+  }
+});
+
+async function syncPendingStories() {
+  const db = await openDB('story-db', 2);
+  const tx = db.transaction('pending-stories', 'readwrite');
+  const store = tx.objectStore('pending-stories');
+  const allPending = await store.getAll();
+
+  for (const item of allPending) {
+    try {
+      const formData = new FormData();
+      formData.append('description', `${item.title} = ${item.desc}`);
+      formData.append('photo', item.imageBlob, 'story.jpg');
+      formData.append('lat', item.lat);
+      formData.append('lon', item.lon);
+
+      if (!item.token) {
+        console.warn('[SW] Missiong token for pending story, skupping...')
+        continue;
+      }
+
+      const res = await fetch('https://story-api.dicoding.dev/v1/stories', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${item.token}` },
+        body: formData,
+      });
+
+      if (res.ok) {
+        await store.delete(item.tempId);
+        console.log('[SW] Synced story successfully', item.tempId);
+      } else {
+      console.error('[SW] Failed to sync story:', res.status);
+      }
+    } catch (err) {
+      console.error('[SW] Failed to sync story:', err);
+    }
+  }
+
+  await tx.done;
+  console.log("[SW] Sync pending stories done")
+};
