@@ -5,10 +5,10 @@ import { CacheableResponsePlugin } from "workbox-cacheable-response";
 import { ExpirationPlugin } from "workbox-expiration";
 import { openDB } from "idb";
 
-// ======== PRE-CACHE FILES ==========
+
 precacheAndRoute(self.__WB_MANIFEST);
 
-// ======== STATIC ASSETS ==========
+
 registerRoute(
   ({ request }) =>
     request.destination === "style" ||
@@ -19,13 +19,12 @@ registerRoute(
     plugins: [
       new ExpirationPlugin({
         maxEntries: 60,
-        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 hari
+        maxAgeSeconds: 30 * 24 * 60 * 60, 
       }),
     ],
   })
 );
 
-// ======== STORY API (GET REQUEST) ==========
 registerRoute(
   ({ url, request }) =>
     url.origin.includes("story-api.dicoding.dev") &&
@@ -37,13 +36,12 @@ registerRoute(
       new CacheableResponsePlugin({ statuses: [0, 200] }),
       new ExpirationPlugin({
         maxEntries: 30,
-        maxAgeSeconds: 24 * 60 * 60, // 1 hari
+        maxAgeSeconds: 24 * 60 * 60, 
       }),
     ],
   })
 );
 
-// ======== STORY IMAGES ==========
 registerRoute(
   ({ url }) =>
     url.origin.includes("story-api.dicoding.dev") &&
@@ -54,13 +52,12 @@ registerRoute(
       new CacheableResponsePlugin({ statuses: [0, 200] }),
       new ExpirationPlugin({
         maxEntries: 50,
-        maxAgeSeconds: 7 * 24 * 60 * 60, // 7 hari
+        maxAgeSeconds: 7 * 24 * 60 * 60, 
       }),
     ],
   })
 );
 
-// ======== OPENSTREETMAP TILE CACHE ==========
 registerRoute(
   ({ url }) => url.origin.includes("tile.openstreetmap.org"),
   new StaleWhileRevalidate({
@@ -69,18 +66,16 @@ registerRoute(
       new CacheableResponsePlugin({ statuses: [0, 200] }),
       new ExpirationPlugin({
         maxEntries: 100,
-        maxAgeSeconds: 7 * 24 * 60 * 60, // 7 hari
+        maxAgeSeconds: 7 * 24 * 60 * 60, 
       }),
     ],
   })
 );
 
-// ======== FETCH HANDLER (TERPENTING) ==========
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Abaikan tile map (biar nggak timeout)
   const mapTileDomains = [
     "a.tile.openstreetmap.org",
     "b.tile.openstreetmap.org",
@@ -88,7 +83,6 @@ self.addEventListener("fetch", (event) => {
   ];
   if (mapTileDomains.includes(url.hostname)) return;
 
-  // Tangani gambar dengan fallback offline
   if (request.destination === "image") {
     event.respondWith(
       (async () => {
@@ -110,8 +104,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Tangani request non-GET (POST, PUT, DELETE)
-  // tapi JANGAN tangkap login/register
   if (
     request.method !== "GET" &&
     !request.url.includes("/login") &&
@@ -134,7 +126,6 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
-// ======== INSTALL & ACTIVATE ==========
 self.addEventListener("install", (event) => {
   console.log("[SW] Installed");
   self.skipWaiting();
@@ -145,7 +136,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(clients.claim());
 });
 
-// ======== PUSH NOTIFICATION ==========
+
 self.addEventListener("push", (event) => {
   if (!event.data) return;
 
@@ -196,7 +187,6 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
-// ======== BACKGROUND SYNC ==========
 self.addEventListener("sync", async (event) => {
   if (event.tag === "sync-pending-stories") {
     event.waitUntil(syncPendingStories());
