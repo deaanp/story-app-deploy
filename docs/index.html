@@ -1,0 +1,11 @@
+<!doctype html><html lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><link rel="shortcut icon" href="favicon.png"/><link rel="manifest" href="/app.webmanifest"><meta name="theme-color" content="#6C63FF"><title>Story App</title><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Quicksand:wght@300..700&display=swap" rel="stylesheet"/><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/><script defer="defer" src="app.bundle.js"></script><link href="app.css" rel="stylesheet"></head><body><a href="main-content" class="skip-link">Skip to content</a><header id="main-header"><div class="main-header container"><div class="header-left"><img src="./images/appbar.png" alt="App Logo" class="header-logo"/> <a class="brand-name" href="#/">Story App</a></div><nav id="navigation-drawer" class="navigation-drawer"><ul id="nav-list" class="nav-list"><li><a href="#/">Home</a></li><li><a href="#/add">Add Story</a></li><li><a href="#/favorite">Favorite</a></li><li><a href="#/map">Explore Map</a></li></ul></nav><div class="header-right"><button id="enable-notif" class="notif-btn" title="Enable Notifications"><img src="./images/notification.png" alt="Notification Icon"/></button> <button id="logout-link" class="btn-header">Logout</button></div><button id="drawer-button" class="drawer-button">☰</button></div></header><main id="main-content" class="main-content" tabindex="-1"></main><footer class="footer"><div class="footer-bottom"><p>&#169;2025 | Story App</p></div></footer><script>if (!window.location.hash) {
+        window.location.hash = '#/login';
+      }
+
+      const skipLink = document.querySelector('.skip-link');
+      const mainContent = document.querySelector('#main-content');
+
+      skipLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        mainContent.focus();
+      });</script></body></html>
