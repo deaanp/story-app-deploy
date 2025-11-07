@@ -12,16 +12,39 @@ export default class LoginPage {
           <a href="#/register">Register</a>
         </div>
         <h1>Please Log In to Continue</h1>
+
         <form id="login-form">
-          <label for="email">Email</label>
-          <input id="email" name="email" type="email" placeholder="Enter your email" autocomplete="username" required />
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input 
+              id="email" 
+              name="email" 
+              type="email" 
+              placeholder="Enter your email" 
+              autocomplete="username" 
+              required 
+            />
+          </div>
 
-          <label for="password">Password</label>
-          <input id="password" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" required />
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input 
+              id="password" 
+              name="password" 
+              type="password" 
+              placeholder="Enter your password" 
+              autocomplete="current-password" 
+              required 
+            />
+          </div>
 
-          <button type="submit" aria-label="Log in to your account"><i class="fa fa-sign-in"></i> Login</button>
+          <button type="submit" aria-label="Log in to your account">
+            <i class="fa fa-sign-in"></i> Login
+          </button>
+
           <p id="login-message" class="message" aria-live="polite"></p>
         </form>
+
         <div id="loader" class="loader"></div>
       </div>
     `;

@@ -1,5 +1,6 @@
 import { getAllStories } from '../data/story-api';
 import { getAuthData } from '../auth/auth-service';
+import { StoryDB } from '../data/idb';
 
 export default class HomePresenter {
   constructor({ view }) {
@@ -19,34 +20,37 @@ export default class HomePresenter {
     this.view.showLoading();
 
     try {
-      await this._fetchStories(auth.token);
-
-      if (this.stories.length === 0) {
-        this.view.showEmpty();
-      } else {
-        this.view.renderStories(this.stories);
+      const localStories = await StoryDB.getAllStories();
+      if (localStories.length > 0) {
+        this.view.renderStories(localStories);
       }
-    } catch (err) {
-      this.view.showError('Failed to load stories. Please try again.');
-    }
-  }
 
-  async _fetchStories(token) {
-    try {
-      const res = await getAllStories({ token, location: 1 });
-      console.log('Response from API:', res);
+      const res = await getAllStories({ token: auth.token });
       this.stories = res.listStory || [];
+
+      for (const story of this.stories) {
+        await StoryDB.putStory(story);
+      }
+
+      const updatedStories = await StoryDB.getAllStories();
+      this.view.renderStories(updatedStories);
+
     } catch (err) {
-      console.error('Failed fetch stories:', err);
-      this.stories = [];
+      console.error('Failed to load stories:', err);
+      const cached = await StoryDB.getAllStories();
+      if (cached.length > 0) {
+        this.view.renderStories(cached);
+      } else {
+        this.view.showError('Failed to load stories. Please try again.');
+      }
     }
   }
 
   _handleSearchFilter({ query, sort }) {
     let filtered = this.stories.filter(
       (s) =>
-        s.name.toLowerCase().includes(query) ||
-      s.description.toLowerCase().includes(query)
+        s.name.toLowerCase().includes(query.toLowerCase()) ||
+        s.description.toLowerCase().includes(query.toLowerCase())
     );
 
     if (sort === 'latest') {
@@ -56,9 +60,5 @@ export default class HomePresenter {
     }
 
     this.view.renderStories(filtered);
-  }
-
-  _handleRead(id) {
-    console.log('story clicked', id);
   }
 }

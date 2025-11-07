@@ -31,7 +31,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
+      const base = window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/';
+      const registration = await navigator.serviceWorker.register(`${base}sw.js`);
+
       console.log('Service Worker registered with scope:', registration.scope);
 
       registration.onupdatefound = () => {

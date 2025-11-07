@@ -5,22 +5,22 @@ export default class FavoritePresenter {
     this.view = view;
   }
 
-  init() {
-    this._render();
+  async init() {
+    await this._render();
     this._setupHandlers();
   }
 
-  _render() {
-    const favorites = getFavorites();
-    this.view.renderFavorites(favorites);
+  async _render() {
+    const favorites = await getFavorites();
+    this.view.renderFavorites(favorites || []);
   }
 
   _setupHandlers() {
     this.view.bindRemoveFavorite(async (id) => {
       const confirmed = await this.view.confirmRemove();
       if (confirmed) {
-        removeFavorite(id);
-        this._render();
+        await removeFavorite(id);
+        await this._render();
         this.view.showRemovedMessage();
       }
     });

@@ -10,22 +10,58 @@ export default class RegisterPage {
           <a href="#/register" class="active">Register</a>
         </div>
         <h1>Create Your Account to Begin the Story</h1>
+
         <form id="register-form">
-          <label for="name">Name</label>
-          <input id="name" name="name" type="text" placeholder="Your Name" required />
+          <div class="form-group">
+            <label for="name">Full Name</label>
+            <input 
+              id="name" 
+              name="name" 
+              type="text" 
+              placeholder="Your Name" 
+              required 
+            />
+          </div>
 
-          <label for="email">Email</label>
-          <input id="email" name="email" type="email" placeholder="Your email" required />
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input 
+              id="email" 
+              name="email" 
+              type="email" 
+              placeholder="Your Email" 
+              required 
+            />
+          </div>
 
-          <label for="password">Password</label>
-          <input id="password" name="password" type="password" placeholder="Your Password" minlength="8" required />
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input 
+              id="password" 
+              name="password" 
+              type="password" 
+              placeholder="Your Password" 
+              minlength="8" 
+              required 
+            />
+          </div>
 
-          <label for="confirrm-password">Confirm Password</label>
-          <input id="confirm-password" name="confirm-password" type="password" placeholder="Confirm your password" minglenth="8" required />
+          <div class="form-group">
+            <label for="confirm-password">Confirm Password</label>
+            <input 
+              id="confirm-password" 
+              name="confirm-password" 
+              type="password" 
+              placeholder="Confirm your password" 
+              minlength="8" 
+              required 
+            />
+          </div>
 
-          <button type="submit">Register</button>
-          <p id="register-message" class="message"></p>
+          <button type="submit" aria-label="Register your account">Register</button>
+          <p id="register-message" class="message" aria-live="polite"></p>
         </form>
+
         <div id="loader" class="loader"></div>
       </div>
     `;
@@ -49,8 +85,9 @@ export default class RegisterPage {
         message.textContent = 'Password must be at least 8 characters long';
         return;
       }
+
       if (password !== confirmPassword) {
-        message.textContent = 'Oops! Those passwords dont match';
+        message.textContent = 'Oops! Those passwords don’t match';
         return;
       }
 
@@ -63,13 +100,13 @@ export default class RegisterPage {
         if (res.error) {
           message.textContent = `${res.message}`;
         } else {
-          message.textContent = 'Woohoo! Your account is ready. Lets log you in';
+          message.textContent = 'Woohoo! Your account is ready. Let’s log you in';
           setTimeout(() => {
             location.hash = '#/login';
           }, 1200);
         }
       } catch (err) {
-        message.textContent = 'Oops! We couldnt reach the server';
+        message.textContent = 'Oops! We couldn’t reach the server';
       } finally {
         loader.classList.remove('show');
         form.querySelector('button').disabled = false;

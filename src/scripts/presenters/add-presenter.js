@@ -1,6 +1,7 @@
 import { addNewStory } from '../data/story-api';
 import { getAuthData } from '../auth/auth-service';
 import { openDB } from 'idb';
+import { StoryDB } from '../data/idb';
 
 export default class AddPresenter {
   constructor({ view, camera, map }) {
@@ -93,13 +94,22 @@ export default class AddPresenter {
 
         if (res.error) {
           this.view.showError('Failed to Add Story', res.message);
-        } else {
-          this.view.showSuccess(
-            'Story Added!',
-            'Your new story has been successfully posted'
-          );
-          this.view.resetForm();
+          return;
         }
+
+        if (res.story) {
+          await StoryDB.putStory(res.story);
+        }
+
+        this.view.showSuccess(
+          'Story Added!',
+          'Your new story has been successfully posted'
+        );
+        this.view.resetForm();
+
+        setTimeout(() => {
+          location.hash = '#/';
+        }, 1000);
       } catch (err) {
         console.warn('[AddPresenter] Offline detected, saving story locally...', err);
 
@@ -119,13 +129,21 @@ export default class AddPresenter {
         });
         await tx.done;
 
+        await StoryDB.putStory({
+          id: `tempt-${tempId}`,
+          name: title,
+          description: desc,
+          createdAt: new Date().toISOString(),
+          photoUrl: './images/offline-placeholder.png',
+        })
+
         if ('serviceWorker' in navigator && 'SyncManager' in window) {
           const registration = await navigator.serviceWorker.ready;
           await registration.sync.register('sync-pending-stories');
           console.log('[AddPresenter] Story saved locally & sync registered');
           this.view.showInfo(
             'Offline Mode',
-            'Your story will be uploaded once youre online'
+            'Your story will be uploaded once you’re online'
           );
         } else {
           this.view.showError(

@@ -2,7 +2,7 @@ import { precacheAndRoute } from "workbox-precaching";
 import { registerRoute } from "workbox-routing";
 import { NetworkFirst, StaleWhileRevalidate } from "workbox-strategies";
 import { CacheableResponsePlugin } from "workbox-cacheable-response";
-import { ExpirationPlugin} from 'workbox-expiration';
+import { ExpirationPlugin } from 'workbox-expiration';
 import { openDB } from 'idb';
 
 precacheAndRoute(self.__WB_MANIFEST);
@@ -28,7 +28,6 @@ registerRoute(
     url.origin.includes('story-api.dicoding.dev') &&
     request.method === 'GET' &&
     !url.href.includes('/notifications'),
-
   new NetworkFirst({
     cacheName: 'api-cache',
     plugins: [
@@ -125,45 +124,51 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('push', (event) => {
   if (!event.data) return;
-  
+
+  let data;
+
   try {
-    const data = event.data.json();
-    const title = data.title || 'Story App';
-    const body = data.options?.body || 'New story update!';
-    const targetUrl = data.options?.url || '/#/';
-
-    const options = {
-      body,
-      icon: './icons/icon-192.png',
-      badge: './icons/icon-192.png',
-      data: { url: targetUrl },
-      actions: [{ action: 'open', title: 'View Story' }],
-    }
-
-    event.waitUntil(self.registration.showNotification(title, options));
+    data = event.data.json();
   } catch (error) {
-    console.error('[SW] Push event error:', error);
+    data = {
+      title: 'Story App',
+      options: {
+        body: event.data.text() || 'You have a new notification!',
+        url: '/#/',
+      },
+    };
   }
+
+  const title = data.title || 'Story App';
+  const body = data.options?.body || 'New story update!';
+  const targetUrl = data.options?.url || '/#/';
+
+  const options = {
+    body,
+    icon: './icons/icon-192.png',
+    badge: './icons/icon-192.png',
+    data: { url: targetUrl },
+    actions: [{ action: 'open', title: 'View Story' }],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetUrl = event.notification.data?.url || '/#/';
   event.waitUntil(
-    clients
-    .matchAll({type: 'window', includeUncontrolled: true })
-    .then((clientList) => {
-      for (const client of clientList) {
-        if ('focus' in client) {
-          client.navigate(targetUrl);
-          client.focus();
-          return;
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if ('focus' in client) {
+            client.navigate(targetUrl);
+            client.focus();
+            return;
+          }
         }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
-      }
-    })
+        if (clients.openWindow) return clients.openWindow(targetUrl);
+      })
   );
 });
 
@@ -188,7 +193,7 @@ async function syncPendingStories() {
       formData.append('lon', item.lon);
 
       if (!item.token) {
-        console.warn('[SW] Missiong token for pending story, skupping...')
+        console.warn('[SW] Missing token for pending story, skipping...');
         continue;
       }
 
@@ -202,7 +207,7 @@ async function syncPendingStories() {
         await store.delete(item.tempId);
         console.log('[SW] Synced story successfully', item.tempId);
       } else {
-      console.error('[SW] Failed to sync story:', res.status);
+        console.error('[SW] Failed to sync story:', res.status);
       }
     } catch (err) {
       console.error('[SW] Failed to sync story:', err);
@@ -210,5 +215,5 @@ async function syncPendingStories() {
   }
 
   await tx.done;
-  console.log("[SW] Sync pending stories done")
-};
+  console.log("[SW] Sync pending stories done");
+}

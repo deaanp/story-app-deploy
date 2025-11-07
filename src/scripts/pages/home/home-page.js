@@ -10,11 +10,23 @@ export default class HomePage {
         <h1 class="page-title">Discover Stories</h1>
 
         <div class="toolbar">
-          <input id="search-input" type="text" placeholder="Search story..." />
-          <select id="filter-select">
-            <option value="latest">Latest</option>
-            <option value="oldest">Oldest</option>
-          </select>
+          <div class="form-group">
+            <label for="search-input">Search Story:</label>
+            <input 
+              id="search-input" 
+              type="text" 
+              placeholder="Search story..." 
+              aria-label="Search story by title" 
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="filter-select">Sort Stories:</label>
+            <select id="filter-select" aria-label="Select sort order">
+              <option value="latest">Latest</option>
+              <option value="oldest">Oldest</option>
+            </select>
+          </div>
         </div>
         
         <div id="story-list" class="story-grid"></div>
@@ -34,20 +46,7 @@ export default class HomePage {
     });
 
     const presenter = new HomePresenter({ view });
-    presenter.init();
-
-    try {
-      const stories = await getAllStories();
-      for (const story of stories) {
-        await StoryDB.putStory(story);
-      }
-
-      this._renderStories(stories);
-    } catch (error) {
-      console.warn('Offline mode, showing cached stories');
-      const cachedStories = await StoryDB.getAllStories();
-      this._renderStories(cachedStories);
-    }
+    await presenter.init();
 
     searchInput.addEventListener('input', async (e) => {
       const keyword = e.target.value.toLowerCase();
@@ -55,7 +54,7 @@ export default class HomePage {
       const filtered = allStories.filter((story) =>
         story.name.toLowerCase().includes(keyword)
       );
-      this._renderStories(filtered);
+      view.renderStories(filtered);
     });
 
     filterSelect.addEventListener('change', async (e) => {
@@ -63,11 +62,10 @@ export default class HomePage {
       const allStories = await StoryDB.getAllStories();
       const sorted = [...allStories].sort((a, b) =>
         value === 'latest'
-        ? new Date(b.createdAt) - new Date(a.createdAt)
-        : new Date(a.createdAt) - new Date(b.createdAt)
+          ? new Date(b.createdAt) - new Date(a.createdAt)
+          : new Date(a.createdAt) - new Date(b.createdAt)
       );
-
-      this._renderStories(sorted);
+      view.renderStories(sorted);
     });
   }
 

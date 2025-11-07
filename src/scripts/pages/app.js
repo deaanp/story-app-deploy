@@ -83,8 +83,6 @@ class App {
             showConfirmButton: false,
             timer: 2000
           });
-          // notifBtn.classList.remove('active');
-          // isSubscribed = false;
         }
 
         await updateButtonState();

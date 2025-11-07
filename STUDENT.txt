@@ -1,2 +1,2 @@
-APP_URL=<url_aplikasi>
+APP_URL=https://deaanp.github.io/story-app-deploy/
 MAP_SERVICE_API_KEY=<api_key>

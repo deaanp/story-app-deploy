@@ -6,9 +6,15 @@ export default class MapPage {
   async render() {
     return `
       <section class="container">
-        <h1>Explore stories on the Map</h1>
-        <div id="map" class="map-container"></div>
-        <p id="map-message" class="message"></p>
+        <h1 id="map-heading">Explore stories on the Map</h1>
+        <div 
+          id="map" 
+          class="map-container"
+          role="region"
+          aria-labelledby="map-heading"
+        ></div>
+
+        <p id="map-message" class="message" aria-live="polite"></p>
       </section>
     `;
   }

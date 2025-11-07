@@ -14,41 +14,52 @@ export default class AddPage {
 
             <div class="form-group">
               <label for="story-title">Story Title</label>
-              <input type="text" id="story-title" placeholder="Enter your story title" required />
+              <input 
+                type="text" 
+                id="story-title" 
+                placeholder="Enter your story title" 
+                required 
+              />
             </div>
               
             <div class="form-group">
               <label for="story-desc">Description</label>
-              <textarea id="story-desc" placeholder="Write your story..." required></textarea>
+              <textarea 
+                id="story-desc" 
+                placeholder="Write your story..." 
+                required
+              ></textarea>
             </div>
             
             <div class="form-group">  
               <label for="story-photo">Upload Photo</label>
               <div class="file-input-wrapper">
-                <label for="story-photo" class="file-label">
-                  <i class="fas fa-upload"></i> Choose File
-                </label>
-                <input type="file" id="story-photo" accept="image/*" hidden />
+                <input 
+                  type="file" 
+                  id="story-photo" 
+                  accept="image/*" 
+                  aria-label="Select photo to upload" 
+                />
                 <span id="file-name" class="file-name">No file chosen</span>
               </div>
               <img id="photo-preview" alt="Story photo preview" class="preview-img" />
-              <button type="button" id="remove-photo" class="btn-danger hidden">Remove photo</button>
+              <button type="button" id="remove-photo" class="btn-danger hidden" aria-label="Remove selected photo">Remove photo</button>
             </div>
               
-              <div class="camera-section">
-                <h2 class="section-title">Or Use Camera</h2>
-                <video id="video" autoplay class="hidden"></video>
-                <canvas id="canvas" class="hidden"></canvas>
-                <div class="camera-buttons">
-                  <button type="button" id="open-camera" class="btn-secondary">Use camera</button>
-                  <button type="button" id="capture-photo" class="btn-primary hidden">Take a picture</button>
-                  <button type="button" id="stop-camera" class="btn-danger hidden">Stop camera</button>
-                </div>
+            <div class="camera-section">
+              <h2 class="section-title">Or Use Camera</h2>
+              <video id="video" autoplay class="hidden" aria-label="Camera viewfinder"></video>
+              <canvas id="canvas" class="hidden" aria-label="Captured photo"></canvas>
+              <div class="camera-buttons">
+                <button type="button" id="open-camera" class="btn-secondary" aria-label="Open camera">Use camera</button>
+                <button type="button" id="capture-photo" class="btn-primary hidden" aria-label="Capture photo">Take a picture</button>
+                <button type="button" id="stop-camera" class="btn-danger hidden" aria-label="Stop camera">Stop camera</button>
               </div>
+            </div>
               
-              <div id="add-map" class="map"></div>
+            <div id="add-map" class="map" role="region" aria-label="Select story location"></div>
               
-              <button type="submit" class="btn-primary submit-btn">Save story</button>
+            <button type="submit" class="btn-primary submit-btn">Save story</button>
           </form>
           
           <p id="add-message" class="message" aria-live="polite"></p>
