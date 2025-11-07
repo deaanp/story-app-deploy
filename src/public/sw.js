@@ -2,93 +2,93 @@ import { precacheAndRoute } from "workbox-precaching";
 import { registerRoute } from "workbox-routing";
 import { NetworkFirst, StaleWhileRevalidate } from "workbox-strategies";
 import { CacheableResponsePlugin } from "workbox-cacheable-response";
-import { ExpirationPlugin } from 'workbox-expiration';
-import { openDB } from 'idb';
+import { ExpirationPlugin } from "workbox-expiration";
+import { openDB } from "idb";
 
+// ======== PRE-CACHE FILES ==========
 precacheAndRoute(self.__WB_MANIFEST);
 
+// ======== STATIC ASSETS ==========
 registerRoute(
   ({ request }) =>
-    request.destination === 'style' ||
-    request.destination === 'script' ||
-    request.destination === 'image',
+    request.destination === "style" ||
+    request.destination === "script" ||
+    request.destination === "image",
   new StaleWhileRevalidate({
-    cacheName: 'static-resources',
+    cacheName: "static-resources",
     plugins: [
       new ExpirationPlugin({
         maxEntries: 60,
-        maxAgeSeconds: 30 * 24 * 60 * 60, 
+        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 hari
       }),
     ],
   })
 );
 
+// ======== STORY API (GET REQUEST) ==========
 registerRoute(
-  ({ url, request }) => 
-    url.origin.includes('story-api.dicoding.dev') &&
-    request.method === 'GET' &&
-    !url.href.includes('/notifications'),
+  ({ url, request }) =>
+    url.origin.includes("story-api.dicoding.dev") &&
+    request.method === "GET" &&
+    !url.href.includes("/notifications"),
   new NetworkFirst({
-    cacheName: 'api-cache',
+    cacheName: "api-cache",
     plugins: [
       new CacheableResponsePlugin({ statuses: [0, 200] }),
       new ExpirationPlugin({
         maxEntries: 30,
-        maxAgeSeconds: 24 * 60 * 60, 
+        maxAgeSeconds: 24 * 60 * 60, // 1 hari
       }),
     ],
   })
 );
 
+// ======== STORY IMAGES ==========
 registerRoute(
   ({ url }) =>
-    url.origin.includes('story-api.dicoding.dev') &&
-    url.pathname.startsWith('/images/stories'),
+    url.origin.includes("story-api.dicoding.dev") &&
+    url.pathname.startsWith("/images/stories"),
   new StaleWhileRevalidate({
-    cacheName: 'stories-data',
+    cacheName: "stories-data",
     plugins: [
       new CacheableResponsePlugin({ statuses: [0, 200] }),
       new ExpirationPlugin({
         maxEntries: 50,
-        maxAgeSeconds: 7 * 24 * 60 * 60, 
+        maxAgeSeconds: 7 * 24 * 60 * 60, // 7 hari
       }),
     ],
   })
 );
 
+// ======== OPENSTREETMAP TILE CACHE ==========
 registerRoute(
-  ({ url }) => url.origin.includes('tile.openstreetmap.org'),
+  ({ url }) => url.origin.includes("tile.openstreetmap.org"),
   new StaleWhileRevalidate({
-    cacheName: 'osm-tiles',
+    cacheName: "osm-tiles",
     plugins: [
       new CacheableResponsePlugin({ statuses: [0, 200] }),
       new ExpirationPlugin({
         maxEntries: 100,
-        maxAgeSeconds: 7 * 24 * 60 * 60,
+        maxAgeSeconds: 7 * 24 * 60 * 60, // 7 hari
       }),
     ],
   })
 );
 
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-  const mapTileDomains = [
-    'a.tile.openstreetmap.org',
-    'b.tile.openstreetmap.org',
-    'c.tile.openstreetmap.org'
-  ];
-  if (mapTileDomains.includes(url.hostname)) {
-    return; 
-  }
-});
-
+// ======== FETCH HANDLER (TERPENTING) ==========
 self.addEventListener("fetch", (event) => {
   const { request } = event;
+  const url = new URL(request.url);
 
-  if (request.url.includes('tile.openstreetmap.org')) {
-    return;
-  }
+  // Abaikan tile map (biar nggak timeout)
+  const mapTileDomains = [
+    "a.tile.openstreetmap.org",
+    "b.tile.openstreetmap.org",
+    "c.tile.openstreetmap.org",
+  ];
+  if (mapTileDomains.includes(url.hostname)) return;
 
+  // Tangani gambar dengan fallback offline
   if (request.destination === "image") {
     event.respondWith(
       (async () => {
@@ -110,6 +110,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Tangani request non-GET (POST, PUT, DELETE)
+  // tapi JANGAN tangkap login/register
   if (
     request.method !== "GET" &&
     !request.url.includes("/login") &&
@@ -118,8 +120,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       (async () => {
         try {
-          const response = await fetch(request);
-          return response;
+          return await fetch(request);
         } catch {
           console.warn("[SW] Offline - queued for sync:", request.url);
           return new Response(
@@ -129,58 +130,62 @@ self.addEventListener("fetch", (event) => {
         }
       })()
     );
+    return;
   }
 });
 
-self.addEventListener('install', (event) => {
-  console.log('[SW] Installed');
+// ======== INSTALL & ACTIVATE ==========
+self.addEventListener("install", (event) => {
+  console.log("[SW] Installed");
   self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
-  console.log('[SW] Activated');
+self.addEventListener("activate", (event) => {
+  console.log("[SW] Activated");
   event.waitUntil(clients.claim());
 });
 
-self.addEventListener('push', (event) => {
+// ======== PUSH NOTIFICATION ==========
+self.addEventListener("push", (event) => {
   if (!event.data) return;
 
   let data;
   try {
     data = event.data.json();
-  } catch (error) {
+  } catch {
     data = {
-      title: 'Story App',
+      title: "Story App",
       options: {
-        body: event.data.text() || 'Anda menerima notifikasi baru!',
-        url: '/#/',
+        body: event.data.text() || "Anda menerima notifikasi baru!",
+        url: "/#/",
       },
     };
   }
 
-  const title = data.title || 'Story App';
-  const body = data.options?.body || 'New story update!';
-  const targetUrl = data.options?.url || '/#/';
+  const title = data.title || "Story App";
+  const body = data.options?.body || "New story update!";
+  const targetUrl = data.options?.url || "/#/";
 
   const options = {
     body,
-    icon: './icons/icon-192.png',
-    badge: './icons/icon-192.png',
+    icon: "./icons/icon-192.png",
+    badge: "./icons/icon-192.png",
     data: { url: targetUrl },
-    actions: [{ action: 'open', title: 'View Story' }],
+    actions: [{ action: "open", title: "View Story" }],
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-self.addEventListener('notificationclick', (event) => {
+self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || '/#/';
+  const targetUrl = event.notification.data?.url || "/#/";
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
       .then((clientList) => {
         for (const client of clientList) {
-          if ('focus' in client) {
+          if ("focus" in client) {
             client.navigate(targetUrl);
             client.focus();
             return;
@@ -191,49 +196,50 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-self.addEventListener('sync', async (event) => {
-  if (event.tag === 'sync-pending-stories') {
+// ======== BACKGROUND SYNC ==========
+self.addEventListener("sync", async (event) => {
+  if (event.tag === "sync-pending-stories") {
     event.waitUntil(syncPendingStories());
   }
 });
 
 async function syncPendingStories() {
-  const db = await openDB('story-db', 2);
-  const tx = db.transaction('pending-stories', 'readwrite');
-  const store = tx.objectStore('pending-stories');
+  const db = await openDB("story-db", 2);
+  const tx = db.transaction("pending-stories", "readwrite");
+  const store = tx.objectStore("pending-stories");
   const allPending = await store.getAll();
 
   for (const item of allPending) {
     try {
       const formData = new FormData();
-      formData.append('description', `${item.title} = ${item.desc}`);
-      formData.append('photo', item.imageBlob, 'story.jpg');
-      formData.append('lat', item.lat);
-      formData.append('lon', item.lon);
+      formData.append("description", `${item.title} = ${item.desc}`);
+      formData.append("photo", item.imageBlob, "story.jpg");
+      formData.append("lat", item.lat);
+      formData.append("lon", item.lon);
 
       if (!item.token) {
-        console.warn('[SW] Missing token for pending story, skipping...');
+        console.warn("[SW] Missing token for pending story, skipping...");
         continue;
       }
 
-      const res = await fetch('https://story-api.dicoding.dev/v1/stories', {
-        method: 'POST',
+      const res = await fetch("https://story-api.dicoding.dev/v1/stories", {
+        method: "POST",
         headers: { Authorization: `Bearer ${item.token}` },
         body: formData,
       });
 
       if (res.ok) {
         await store.delete(item.tempId);
-        console.log('[SW] Synced story successfully', item.tempId);
+        console.log("[SW] Synced story successfully", item.tempId);
       } else {
-        console.error('[SW] Failed to sync story:', res.status);
+        console.error("[SW] Failed to sync story:", res.status);
       }
     } catch (err) {
-      console.error('[SW] Failed to sync story:', err);
+      console.error("[SW] Failed to sync story:", err);
     }
   }
 
   await tx.done;
   console.log("[SW] Sync pending stories done");
-  console.log('[SW] Background Sync Registered and Completed');
+  console.log("[SW] Background Sync Registered and Completed");
 }
