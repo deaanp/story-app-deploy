@@ -20,13 +20,10 @@ export default class HomePresenter {
     this.view.showLoading();
 
     try {
-      // const localStories = await StoryDB.getAllStories();
-      // if (localStories.length > 0) {
-      //   this.view.renderStories(localStories);
-      // }
-
       const localStories = await StoryDB.getAllStories();
-      this.view.renderStories(localStories); // offline-first
+      if (localStories.length > 0) {
+        this.view.renderStories(localStories);
+      }
 
       const res = await getAllStories({ token: auth.token });
       this.stories = res.listStory || [];

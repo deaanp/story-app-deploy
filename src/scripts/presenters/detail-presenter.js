@@ -2,7 +2,6 @@ import { getStoryDetail } from '../data/story-api';
 import { getAuthData } from '../auth/auth-service';
 import { parseActivePathname } from '../routes/url-parser';
 import { saveFavorite, removeFavorite, isFavorite } from '../pages/favorite/favorite-service';
-import { StoryDB } from '../data/idb';
 
 export default class DetailPresenter {
   constructor({ view }) {
@@ -57,17 +56,8 @@ export default class DetailPresenter {
 
     } catch (err) {
       console.error('DETAIL ERROR:', err);
-
-      const localStory = await StoryDB.getStory(id);
-      if (localStory) {
-        this.view.renderStory(localStory, false);
-        return;
-      }
-
+      this.view.showMessage('Failed to load story');
       this.view.showError('Failed to Load Story', 'Please try again later');
-
-      // this.view.showMessage('Failed to load story');
-      // this.view.showError('Failed to Load Story', 'Please try again later');
     }
   }
 }

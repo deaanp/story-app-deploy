@@ -1,4 +1,4 @@
-import { addNewStory, getAllStories } from '../data/story-api';
+import { addNewStory } from '../data/story-api';
 import { getAuthData } from '../auth/auth-service';
 import { openDB } from 'idb';
 import { StoryDB } from '../data/idb';
@@ -97,34 +97,16 @@ export default class AddPresenter {
           return;
         }
 
-        // if (res.story) {
-        //   await StoryDB.putStory(res.story);
-        // }
-
-        // this.view.showSuccess(
-        //   'Story Added!',
-        //   'Your new story has been successfully posted'
-        // );
-        // this.view.resetForm();
-
-        // setTimeout(() => {
-        //   location.hash = '#/';
-        // }, 1000);
-
-        const latest = await getAllStories({ token });
-
-        if (latest.listStory && latest.listStory.length > 0) {
-          for (const story of latest.listStory) {
-            await StoryDB.putStory(story);
-          }
+        if (res.story) {
+          await StoryDB.putStory(res.story);
         }
 
         this.view.showSuccess(
           'Story Added!',
           'Your new story has been successfully posted'
         );
-
         this.view.resetForm();
+
         setTimeout(() => {
           location.hash = '#/';
         }, 1000);
