@@ -1,4 +1,4 @@
-import { addNewStory } from '../data/story-api';
+import { addNewStory, getAllStories } from '../data/story-api';
 import { getAuthData } from '../auth/auth-service';
 import { openDB } from 'idb';
 import { StoryDB } from '../data/idb';
