@@ -17,7 +17,7 @@ registerRoute(
     plugins: [
       new ExpirationPlugin({
         maxEntries: 60,
-        maxAgeSeconds: 30 * 24 * 60 * 60,
+        maxAgeSeconds: 30 * 24 * 60 * 60, 
       }),
     ],
   })
@@ -34,7 +34,7 @@ registerRoute(
       new CacheableResponsePlugin({ statuses: [0, 200] }),
       new ExpirationPlugin({
         maxEntries: 30,
-        maxAgeSeconds: 24 * 60 * 60,
+        maxAgeSeconds: 24 * 60 * 60, 
       }),
     ],
   })
@@ -50,7 +50,7 @@ registerRoute(
       new CacheableResponsePlugin({ statuses: [0, 200] }),
       new ExpirationPlugin({
         maxEntries: 50,
-        maxAgeSeconds: 7 * 24 * 60 * 60,
+        maxAgeSeconds: 7 * 24 * 60 * 60, 
       }),
     ],
   })
@@ -70,8 +70,24 @@ registerRoute(
   })
 );
 
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  const mapTileDomains = [
+    'a.tile.openstreetmap.org',
+    'b.tile.openstreetmap.org',
+    'c.tile.openstreetmap.org'
+  ];
+  if (mapTileDomains.includes(url.hostname)) {
+    return; 
+  }
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
+
+  if (request.url.includes('tile.openstreetmap.org')) {
+    return;
+  }
 
   if (request.destination === "image") {
     event.respondWith(
@@ -126,14 +142,13 @@ self.addEventListener('push', (event) => {
   if (!event.data) return;
 
   let data;
-
   try {
     data = event.data.json();
   } catch (error) {
     data = {
       title: 'Story App',
       options: {
-        body: event.data.text() || 'You have a new notification!',
+        body: event.data.text() || 'Anda menerima notifikasi baru!',
         url: '/#/',
       },
     };
@@ -216,4 +231,5 @@ async function syncPendingStories() {
 
   await tx.done;
   console.log("[SW] Sync pending stories done");
+  console.log('[SW] Background Sync Registered and Completed');
 }
