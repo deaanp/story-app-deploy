@@ -110,7 +110,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (request.method !== "GET") {
+  if (
+    request.method !== "GET" &&
+    !request.url.includes("/login") &&
+    !request.url.includes("/register")
+  ) {
     event.respondWith(
       (async () => {
         try {
