@@ -188,11 +188,18 @@ async function syncPendingStories() {
 
   for (const item of allPending) {
     try {
-      const formData = new FormData();
-      formData.append("description", item.desc || item.title || "No description");
-      formData.append("photo", item.imageBlob, "story.jpg");
-      formData.append("lat", item.lat);
-      formData.append("lon", item.lon);
+      const base64ToBlob = (base64) => {
+        const parts = base64.split(',');
+        const mime = parts[0].match(/:(.*?);/)[1];
+        const binary = atob(parts[1]);
+        let length = binary.length;
+        const buffer = new Uint8Array(length);
+        while (length--) buffer[length] = binary.charCodeAt(length);
+        return new Blob([buffer], { type: mime });
+      };
+
+      const blob = base64ToBlob(item.imageBase64);
+      formData.append("photo", blob, "story.jpg");
 
       if (!item.token) {
         console.warn("[SW] Missing token for pending story, skipping...");

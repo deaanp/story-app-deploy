@@ -118,13 +118,22 @@ export default class AddPresenter {
         const tx = db.transaction('pending-stories', 'readwrite');
         const store = tx.objectStore('pending-stories');
 
+        const blobToBase64 = (blob) =>
+          new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+        
+        const imageBase64 = await blobToBase64(this.imageBlob);
+
         const tempId = Date.now();
 
         await store.put({
           tempId,
           title,
           desc,
-          imageBlob: this.imageBlob,
+          imageBase64,
           lat: this.lat,
           lon: this.lon,
           token,
@@ -142,7 +151,7 @@ export default class AddPresenter {
         if ('serviceWorker' in navigator && 'SyncManager' in window) {
           const registration = await navigator.serviceWorker.ready;
           await registration.sync.register('sync-pending-stories');
-          console.log('[AddPresenter] ✅ Story saved locally & sync registered');
+          console.log('[AddPresenter] Story saved locally & sync registered');
 
           this.view.showInfo(
             'Offline Mode',
