@@ -140,6 +140,13 @@ class App {
       return;
     }
 
+    const redirectUrl = localStorage.getItem('redirectAfterLogin');
+    if (redirectUrl) {
+      localStorage.removeItem('redirectAfterLogin');
+      window.location.hash = redirectUrl;
+      return;
+    }
+
     await useViewTransition(async () => {
       this._content.classList.add('fade-out');
       await new Promise((resolve) => setTimeout(resolve, 300));

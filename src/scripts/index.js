@@ -2,7 +2,7 @@
 import '../styles/styles.css';
 import { useViewTransition } from './utils/view-transition';
 import App from './pages/app';
-import { clearAuthData } from './auth/auth-service';
+import { clearAuthData, getAuthData } from './auth/auth-service';
 import { requestNotificationPermission, subscribePush, unsubscribePush } from './utils/push-notification';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -12,8 +12,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     navigationDrawer: document.querySelector('#navigation-drawer'),
   });
 
-  const isLoggedIn = !!localStorage.getItem('authData');
-  if (isLoggedIn) {
+  const auth = getAuthData();
+  if (auth && auth.token) {
     location.hash = '#/';
   } else {
     location.hash = '#/login';
@@ -31,7 +31,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      const base = window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/';
+      const base = window.location.pathname.endsWith('/') 
+        ? window.location.pathname 
+        : window.location.pathname + '/';
       const registration = await navigator.serviceWorker.register(`${base}sw.js`);
 
       console.log('Service Worker registered with scope:', registration.scope);
@@ -58,8 +60,14 @@ window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
 
-  const isLoggedIn = !!localStorage.getItem('authData');
-  if (!isLoggedIn) {
+  // const isLoggedIn = !!localStorage.getItem('authData');
+  // if (!isLoggedIn) {
+  //   console.log('Install button hidden: user not logged in');
+  //   return;
+  // }
+
+  const auth = getAuthData();
+  if (!auth || !auth.token) {
     console.log('Install button hidden: user not logged in');
     return;
   }
@@ -91,6 +99,7 @@ document.addEventListener('click', (e) => {
   if (e.target.id === 'logout-link') {
     e.preventDefault();
     clearAuthData();
+    sessionStorage.clear();
     location.hash = '#/login';
   }
 });
