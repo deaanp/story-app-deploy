@@ -5,10 +5,7 @@ import { CacheableResponsePlugin } from "workbox-cacheable-response";
 import { ExpirationPlugin } from "workbox-expiration";
 import { openDB } from "idb";
 
-precacheAndRoute([
-  { url: '/story-app-deploy/images/fallback.png', revision: null },
-  ...self.__WB_MANIFEST,
-]);
+precacheAndRoute(self.__WB_MANIFEST);
 
 registerRoute(
   ({ request }) =>
