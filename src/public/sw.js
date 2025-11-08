@@ -5,11 +5,7 @@ import { CacheableResponsePlugin } from "workbox-cacheable-response";
 import { ExpirationPlugin } from "workbox-expiration";
 import { openDB } from "idb";
 
-// precacheAndRoute(self.__WB_MANIFEST);
-precacheAndRoute([
-  { url: 'images/fallback.png', revision: null },
-  ... self.__WB_MANIFEST,
-])
+precacheAndRoute(self.__WB_MANIFEST);
 
 registerRoute(
   ({ request }) =>
@@ -86,23 +82,7 @@ self.addEventListener("fetch", (event) => {
   if (mapTileDomains.includes(url.hostname)) return;
 
   if (request.destination === "image") {
-    event.respondWith(
-      (async () => {
-        try {
-          return await fetch(request);
-        } catch {
-          const cache = await caches.open("static-resources");
-          const fallback = await cache.match("images/fallback.png");
-          return (
-            fallback ||
-            new Response("Image unavailable", {
-              status: 503,
-              headers: { "Content-Type": "text/plain" },
-            })
-          );
-        }
-      })()
-    );
+    event.respondWith(fetch(request).catch(() => new Response("Image unavailable")));
     return;
   }
 
