@@ -8,7 +8,6 @@ import { openDB } from "idb";
 
 precacheAndRoute(self.__WB_MANIFEST);
 
-
 registerRoute(
   ({ request }) =>
     request.destination === "style" ||
@@ -114,10 +113,57 @@ self.addEventListener("fetch", (event) => {
         try {
           return await fetch(request);
         } catch {
-          console.warn("[SW] Offline - queued for sync:", request.url);
+          console.warn("[SW] Offline - saving to pending queue:", request.url);
+          // return new Response(
+          //   JSON.stringify({ error: "Offline mode - request failed" }),
+          //   { status: 408, headers: { "Content-Type": "application/json" } }
+          // );
+
+          try {
+            const cloneReq = request.clone();
+            const formData = await cloneReq.formData();
+            const description = formData.get("description");
+            const imageBlob = formData.get("photo");
+            const lat = formData.get("lat");
+            const lon = formData.get("lon");
+            const tokenHeader = request.headers.get("Authorization");
+            const token = tokenHeader ? tokenHeader.replace("Bearer ", "") : null;
+
+            const db = await openDB("story-db", 2);
+            const tx = db.transaction("pending-stories", "readwrite");
+            const store = tx.objectStore("pending-stories");
+
+            await store.put({
+              tempId: Date.now(),
+              title: description,
+              desc: description,
+              imageBlob,
+              lat,
+              lon,
+              token,
+            });
+
+            await tx.done;
+            console.log("[SW] Story saved offline to pending-stories");
+
+            if (self.registration && "sync" in self.registration) {
+              await self.registration.sync.register("sync-pending-stories");
+              console.log("[SW] Background sync registered!");
+            } else {
+              console.warn("[SW] Background Sync not supported - story will stay offline until next load");
+            }
+          } catch (err) {
+            console.error("[SW] Failed saving story offline:", err);
+          }
+
           return new Response(
-            JSON.stringify({ error: "Offline mode - request failed" }),
-            { status: 408, headers: { "Content-Type": "application/json" } }
+            JSON.stringify({
+              message: "Story saved offline. It will be uploaded once you're online",
+            }),
+            {
+              status: 202,
+              headers: { "Content-Type": "application/json" },
+            }
           );
         }
       })()
@@ -202,7 +248,7 @@ async function syncPendingStories() {
   for (const item of allPending) {
     try {
       const formData = new FormData();
-      formData.append("description", `${item.title} = ${item.desc}`);
+      formData.append("description", item.desc || item.title || "No description");
       formData.append("photo", item.imageBlob, "story.jpg");
       formData.append("lat", item.lat);
       formData.append("lon", item.lon);
