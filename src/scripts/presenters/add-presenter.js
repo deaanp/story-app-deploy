@@ -83,8 +83,10 @@ export default class AddPresenter {
         return;
       }
 
+      let res;
+
       try {
-        const res = await addNewStory({
+        res = await addNewStory({
           token,
           description: `${title} = ${desc}`,
           photo: this.imageBlob,
@@ -92,9 +94,8 @@ export default class AddPresenter {
           lon: this.lon,
         });
 
-        if (res.error) {
-          this.view.showError('Failed to Add Story', res.message);
-          return;
+        if (!res || res.error || res.status === 202) {
+          throw new Error('Offline or failed response');
         }
 
         if (res.story) {
@@ -118,6 +119,7 @@ export default class AddPresenter {
         const store = tx.objectStore('pending-stories');
 
         const tempId = Date.now();
+
         await store.put({
           tempId,
           title,
@@ -130,17 +132,18 @@ export default class AddPresenter {
         await tx.done;
 
         await StoryDB.putStory({
-          id: `tempt-${tempId}`,
+          id: `temp-${tempId}`,
           name: title,
           description: desc,
           createdAt: new Date().toISOString(),
           photoUrl: './images/offline-placeholder.png',
-        })
+        });
 
         if ('serviceWorker' in navigator && 'SyncManager' in window) {
           const registration = await navigator.serviceWorker.ready;
           await registration.sync.register('sync-pending-stories');
-          console.log('[AddPresenter] Story saved locally & sync registered');
+          console.log('[AddPresenter] ✅ Story saved locally & sync registered');
+
           this.view.showInfo(
             'Offline Mode',
             'Your story will be uploaded once you’re online'
