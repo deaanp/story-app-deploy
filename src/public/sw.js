@@ -189,7 +189,7 @@ async function syncPendingStories() {
   for (const item of allPending) {
     try {
       const base64ToBlob = (base64) => {
-        const parts = base64.split(',');
+        const parts = base64.split(",");
         const mime = parts[0].match(/:(.*?);/)[1];
         const binary = atob(parts[1]);
         let length = binary.length;
@@ -199,7 +199,12 @@ async function syncPendingStories() {
       };
 
       const blob = base64ToBlob(item.imageBase64);
+
+      const formData = new FormData();
+      formData.append("description", `${item.title} = ${item.desc}`);
       formData.append("photo", blob, "story.jpg");
+      formData.append("lat", item.lat);
+      formData.append("lon", item.lon);
 
       if (!item.token) {
         console.warn("[SW] Missing token for pending story, skipping...");
@@ -214,7 +219,7 @@ async function syncPendingStories() {
 
       if (res.ok) {
         await store.delete(item.tempId);
-        console.log("[SW] Synced story successfully", item.tempId);
+        console.log("[SW] Synced story successfully:", item.tempId);
       } else {
         console.error("[SW] Failed to sync story:", res.status);
       }
@@ -225,5 +230,5 @@ async function syncPendingStories() {
 
   await tx.done;
   console.log("[SW] Sync pending stories done");
-  console.log("[SW] Background Sync Registered and Completed");
 }
+
