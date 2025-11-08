@@ -124,9 +124,8 @@ export default class AddPresenter {
             reader.onloadend = () => resolve(reader.result);
             reader.readAsDataURL(blob);
           });
-        
-        const imageBase64 = await blobToBase64(this.imageBlob);
 
+        const imageBase64 = await blobToBase64(this.imageBlob);
         const tempId = Date.now();
 
         await store.put({
@@ -138,6 +137,7 @@ export default class AddPresenter {
           lon: this.lon,
           token,
         });
+
         await tx.done;
 
         await StoryDB.putStory({
@@ -145,7 +145,7 @@ export default class AddPresenter {
           name: title,
           description: desc,
           createdAt: new Date().toISOString(),
-          photoUrl: './images/offline-placeholder.png',
+          photoUrl: imageBase64, 
         });
 
         if ('serviceWorker' in navigator && 'SyncManager' in window) {
