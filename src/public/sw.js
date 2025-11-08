@@ -5,7 +5,11 @@ import { CacheableResponsePlugin } from "workbox-cacheable-response";
 import { ExpirationPlugin } from "workbox-expiration";
 import { openDB } from "idb";
 
-precacheAndRoute(self.__WB_MANIFEST);
+// precacheAndRoute(self.__WB_MANIFEST);
+precacheAndRoute([
+  { url: 'images/fallback.png', revision: null },
+  ... self.__WB_MANIFEST,
+])
 
 registerRoute(
   ({ request }) =>
