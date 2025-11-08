@@ -114,13 +114,6 @@ export default class AddPresenter {
       } catch (err) {
         console.warn('[AddPresenter] Offline detected, saving story locally...', err);
 
-        const db = await openDB('story-db', 2);
-
-        // 🔹 Buat 1 transaksi untuk dua object store agar tidak terjadi TransactionInactiveError
-        const tx = db.transaction(['pending-stories', 'stories'], 'readwrite');
-        const pendingStore = tx.objectStore('pending-stories');
-        const storiesStore = tx.objectStore('stories');
-
         const blobToBase64 = (blob) =>
           new Promise((resolve) => {
             const reader = new FileReader();
@@ -128,10 +121,14 @@ export default class AddPresenter {
             reader.readAsDataURL(blob);
           });
 
-        const imageBase64 = await blobToBase64(this.imageBlob);
+        const imageBase64 = await blobToBase64(this.imageBlob); 
         const tempId = Date.now();
 
-        // 🔸 Simpan ke "pending-stories" (untuk disinkronkan nanti)
+        const db = await openDB('story-db', 2);
+        const tx = db.transaction(['pending-stories', 'stories'], 'readwrite');
+        const pendingStore = tx.objectStore('pending-stories');
+        const storiesStore = tx.objectStore('stories');
+
         await pendingStore.put({
           tempId,
           title,
@@ -142,7 +139,6 @@ export default class AddPresenter {
           token,
         });
 
-        // 🔸 Simpan juga ke "stories" supaya langsung tampil di UI meski offline
         await storiesStore.put({
           id: `temp-${tempId}`,
           name: title,
@@ -151,9 +147,8 @@ export default class AddPresenter {
           photoUrl: imageBase64,
         });
 
-        await tx.done; // pastikan transaksi ditutup dengan aman
+        await tx.done; 
 
-        // 🔹 Daftarkan Background Sync agar otomatis kirim data saat online
         if ('serviceWorker' in navigator && 'SyncManager' in window) {
           const registration = await navigator.serviceWorker.ready;
           await registration.sync.register('sync-pending-stories');
