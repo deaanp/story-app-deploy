@@ -117,75 +117,16 @@ self.addEventListener("fetch", (event) => {
         try {
           return await fetch(request);
         } catch (err) {
-          console.warn("[SW] Offline - saving to pending queue:", request.url);
-
-          try {
-            let formData;
-            try {
-              const cloneReq = request.clone();
-              formData = await cloneReq.formData();
-            } catch (err2) {
-              console.warn("[SW] Could not clone formData:", err2);
-              return new Response(
-                JSON.stringify({
-                  error: "Offline mode: cannot read request body",
-                }),
-                { status: 400, headers: { "Content-Type": "application/json" } }
-              );
+          console.warn("[SW] Offline detected. Request body not readable in SW — handled in main thread instead.");
+          return new Response(
+            JSON.stringify({
+              error: "Offline mode: request will be saved by the app.",
+            }),
+            {
+              status: 202,
+              headers: { "Content-Type": "application/json" },
             }
-
-            const description = formData.get("description");
-            const imageBlob = formData.get("photo");
-            const lat = formData.get("lat");
-            const lon = formData.get("lon");
-            const tokenHeader = request.headers.get("Authorization");
-            const token = tokenHeader 
-              ? tokenHeader.replace("Bearer ", "") 
-              : null;
-
-            const db = await openDB("story-db", 2);
-            const tx = db.transaction("pending-stories", "readwrite");
-            const store = tx.objectStore("pending-stories");
-
-            await store.put({
-              tempId: Date.now(),
-              title: description,
-              desc: description,
-              imageBlob,
-              lat,
-              lon,
-              token,
-            });
-
-            await tx.done;
-            console.log("[SW] Story saved offline to pending-stories");
-
-            if ("sync" in self.registration) {
-              await self.registration.sync.register("sync-pending-stories");
-              console.log("[SW] Background sync registered!");
-            } else {
-              console.warn("[SW] Background Sync not supported - story will stay offline until next load");
-            }
-
-            return new Response(
-              JSON.stringify({
-                message: "Story saved offline. It will be uploaded once you're online",
-              }),
-              {
-                status: 202,
-                headers: { "Content-Type": "application/json" },
-              }
-            );
-          } catch (err) {
-            console.error("[SW] Failed saving story offline:", err);
-            return new Response(
-              JSON.stringify({ error: "Offline save failed" }),
-              {
-                status: 500,
-                headers: { "Content-Type": "application/json" }
-              }
-            );
-          }
+          );
         }
       })()
     );
