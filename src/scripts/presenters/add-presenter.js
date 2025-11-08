@@ -115,8 +115,11 @@ export default class AddPresenter {
         console.warn('[AddPresenter] Offline detected, saving story locally...', err);
 
         const db = await openDB('story-db', 2);
-        const tx = db.transaction('pending-stories', 'readwrite');
-        const store = tx.objectStore('pending-stories');
+
+        // 🔹 Buat 1 transaksi untuk dua object store agar tidak terjadi TransactionInactiveError
+        const tx = db.transaction(['pending-stories', 'stories'], 'readwrite');
+        const pendingStore = tx.objectStore('pending-stories');
+        const storiesStore = tx.objectStore('stories');
 
         const blobToBase64 = (blob) =>
           new Promise((resolve) => {
@@ -128,7 +131,8 @@ export default class AddPresenter {
         const imageBase64 = await blobToBase64(this.imageBlob);
         const tempId = Date.now();
 
-        await store.put({
+        // 🔸 Simpan ke "pending-stories" (untuk disinkronkan nanti)
+        await pendingStore.put({
           tempId,
           title,
           desc,
@@ -138,16 +142,18 @@ export default class AddPresenter {
           token,
         });
 
-        await tx.done;
-
-        await StoryDB.putStory({
+        // 🔸 Simpan juga ke "stories" supaya langsung tampil di UI meski offline
+        await storiesStore.put({
           id: `temp-${tempId}`,
           name: title,
           description: desc,
           createdAt: new Date().toISOString(),
-          photoUrl: imageBase64, 
+          photoUrl: imageBase64,
         });
 
+        await tx.done; // pastikan transaksi ditutup dengan aman
+
+        // 🔹 Daftarkan Background Sync agar otomatis kirim data saat online
         if ('serviceWorker' in navigator && 'SyncManager' in window) {
           const registration = await navigator.serviceWorker.ready;
           await registration.sync.register('sync-pending-stories');
