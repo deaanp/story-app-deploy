@@ -88,7 +88,7 @@ self.addEventListener("fetch", (event) => {
           return await fetch(request);
         } catch {
           const cache = await caches.open("static-resources");
-          const fallback = await cache.match("/story-app-deploy/images/fallback.png");
+          const fallback = await cache.match("images/fallback.png");
           return (
             fallback ||
             new Response("Image unavailable", {
