@@ -113,58 +113,60 @@ export default class AddPresenter {
         }, 1000);
       } catch (err) {
         console.warn('[AddPresenter] Offline detected, saving story locally...', err);
-
-        const blobToBase64 = (blob) =>
-          new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(blob);
-          });
-
-        const imageBase64 = await blobToBase64(this.imageBlob); 
-        const tempId = Date.now();
-
-        const db = await openDB('story-db', 2);
-        const tx = db.transaction(['pending-stories', 'stories'], 'readwrite');
-        const pendingStore = tx.objectStore('pending-stories');
-        const storiesStore = tx.objectStore('stories');
-
-        await pendingStore.put({
-          tempId,
-          title,
-          desc,
-          imageBase64,
-          lat: this.lat,
-          lon: this.lon,
-          token,
-        });
-
-        await storiesStore.put({
-          id: `temp-${tempId}`,
-          name: title,
-          description: desc,
-          createdAt: new Date().toISOString(),
-          photoUrl: imageBase64,
-        });
-
-        await tx.done; 
-
-        if ('serviceWorker' in navigator && 'SyncManager' in window) {
-          const registration = await navigator.serviceWorker.ready;
-          await registration.sync.register('sync-pending-stories');
-          console.log('[AddPresenter] Story saved locally & sync registered');
-
-          this.view.showInfo(
-            'Offline Mode',
-            'Your story will be uploaded once you’re online'
-          );
-        } else {
-          this.view.showError(
-            'Offline',
-            'Your browser does not support background sync'
-          );
-        }
+        await this._saveStoryOffline(token, title, desc);
       }
     });
+  }
+
+  async _saveStoryOffline(token, title, desc) {
+    const blobToBase64 = (blob) =>
+      new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);          reader.readAsDataURL(blob);
+      });
+
+    const imageBase64 = await blobToBase64(this.imageBlob); 
+    const tempId = Date.now();
+
+    const db = await openDB('story-db', 2);
+    const tx = db.transaction(['pending-stories', 'stories'], 'readwrite');
+    const pendingStore = tx.objectStore('pending-stories');
+    const storiesStore = tx.objectStore('stories');
+
+    pendingStore.put({
+      tempId,
+      title,
+      desc,
+      imageBase64,
+      lat: this.lat,
+      lon: this.lon,
+      token,
+    });
+
+    storiesStore.put({
+      id: `temp-${tempId}`,
+      name: title,
+      description: desc,
+      createdAt: new Date().toISOString(),
+      photoUrl: imageBase64,
+    });
+
+    await tx.done;
+
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.sync.register('sync-pending-stories');
+      console.log('[AddPresenter] Story saved locally & sync registered');
+
+      this.view.showInfo(
+        'Offline Mode',
+        'Your story will be uploaded once you’re online'
+      );
+    } else {
+      this.view.showError(
+        'Offline',
+        'Your browser does not support background sync'
+      );
+    }
   }
 }
